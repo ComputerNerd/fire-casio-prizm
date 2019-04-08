@@ -4,6 +4,7 @@
 /* Sat Jun 13 02:46:09 PDT 1998 */
 /* This is my first attempt at an SDL program */
 /* See the SDL home page http://www.devolution.com/~slouken/projects/SDL/ */
+#include <fxcg/keyboard.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,7 +94,6 @@ static const char sqrttab[]={
 static void nomem(void)
 {
 	printf("Not enough low memory!\n");
-	SDL_Quit();
 	exit(1);
 }
 
@@ -368,7 +368,6 @@ int main(void)
 	{
 		fprintf(stderr, "Couldn't set display mode: %s\n",
 							SDL_GetError());
-		SDL_Quit();
 		exit(5);
 	}
 
@@ -499,11 +498,10 @@ int main(void)
 		}
 	}
 
-	starttime=SDL_GetTicks()-starttime;
-	if(!starttime) starttime=1;
 	free(mul640);
 	free(blobs);
-	SDL_Quit();
-	printf("fps = %d\n",1000*frames/starttime);
-	exit(0);
+	for (;;) {
+		int key;
+		GetKey(&key);
+	}
 }
