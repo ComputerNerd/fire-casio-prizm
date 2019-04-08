@@ -12,15 +12,16 @@
 
 #include "SDL.h"
 
-#define XSIZE 640
-#define YSIZE 480
+#define XSIZE 384
+#define YSIZE 216
 
-SDL_Surface *thescreen;
-unsigned char *vmem1, *vmem2;
-int mousex,mousey;
-SDL_Color themap[256];
+static SDL_Surface *thescreen;
+static unsigned char *vmem1;
+static unsigned char vmem2[XSIZE * YSIZE];
+static int mousex,mousey;
+static SDL_Color themap[256];
 
-int scrlock()
+static int scrlock()
 {
 	if(SDL_MUSTLOCK(thescreen))
 	{
@@ -33,7 +34,7 @@ int scrlock()
 	}
 	return 0;
 }
-void scrunlock(void)
+static void scrunlock(void)
 {
 	if(SDL_MUSTLOCK(thescreen))
 		SDL_UnlockSurface(thescreen);
@@ -50,9 +51,9 @@ void scrunlock(void)
 
 #define ABS(x) ((x)<0 ? -(x) : (x))
 
-int explodenum;
+static int explodenum;
 
-char sizes[]={2,3,4,5,8,5,4,3};
+static const char sizes[]={2,3,4,5,8,5,4,3};
 
 
 struct blob {
@@ -66,10 +67,10 @@ struct blob {
 } *blobs,*freeblobs,*activeblobs;
 
 
-unsigned char **mul640;
-int oldmode;
+static unsigned char **mul640;
+static int oldmode;
 
-char sqrttab[]={
+static const char sqrttab[]={
 0,1,1,1,2,2,2,2,2,3,3,3,3,3,3,3,
 4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,
 5,5,5,5,6,6,6,6,6,6,6,6,6,6,6,6,
@@ -89,7 +90,7 @@ char sqrttab[]={
 };
 
 
-void nomem(void)
+static void nomem(void)
 {
 	printf("Not enough low memory!\n");
 	SDL_Quit();
@@ -98,7 +99,7 @@ void nomem(void)
 
 
 
-void fire(unsigned char *p1,unsigned char *p2,int pitch,char *map)
+static void fire(unsigned char *p1,unsigned char *p2,int pitch,char *map)
 {
 int x,y;
 unsigned char *p3, *p4;
@@ -114,7 +115,7 @@ unsigned char *p3, *p4;
 	}
 }
 
-void disk(x,y,rad)
+static void disk(x,y,rad)
 {
 unsigned char *p;
 int i,j,k,aj;
@@ -135,13 +136,13 @@ int w;
 		}
 	}
 }
-void trydisk(void)
+static void trydisk(void)
 {
 	if(mousex>10 && mousex<XSIZE-10 && mousey>10 && mousey<YSIZE-10)
 		disk(mousex,mousey,8);
 }
 
-void addblob(void)
+static void addblob(void)
 {
 int dx,dy;
 struct blob *ablob;
@@ -160,7 +161,7 @@ struct blob *ablob;
 	ablob->blobsize=BIGSIZE;
 	activeblobs=ablob;
 }
-void moveblobs(void)
+static void moveblobs(void)
 {
 struct blob **lastblob,*ablob;
 int x,y;
@@ -183,7 +184,7 @@ int x,y;
 		lastblob=&ablob->blobnext;
 	}
 }
-void putblobs(void)
+static void putblobs(void)
 {
 struct blob *ablob,*ablob2,*temp;
 int x,y,dy;
@@ -237,7 +238,7 @@ long x2,y2,vel;
 
 
 #define RATE 1
-void normal(char *map)
+static void normal(char *map)
 {
 int i,j;
 	for(i=0;i<8192;i++)
@@ -246,19 +247,19 @@ int i,j;
 		map[i]=j<256 ? (j>=RATE ? j-RATE : 0) : 255;
 	}
 }
-void bright(char *map)
+static void bright(char *map)
 {
 int i;
 	for(i=0;i<8192;i++) map[i]=i>>3<255 ? (i>>3) : 255;
 }
 
-void updatemap(void)
+static void updatemap(void)
 {
 	SDL_SetColors(thescreen, themap, 0, 256);
 }
 
 
-void loadcolor(int n,int r,int g,int b)
+static void loadcolor(int n,int r,int g,int b)
 {
 	themap[n].r=r<<2;
 	themap[n].g=g<<2;
@@ -266,7 +267,7 @@ void loadcolor(int n,int r,int g,int b)
 }
 
 
-void loadcolors(unsigned int which)
+static void loadcolors(unsigned int which)
 {
 int i,j;
 int r,g,b;
@@ -336,22 +337,23 @@ int r,g,b;
 	updatemap();
 }
 
-main(int argc, char *argv[])
+int main(void)
 {
-int i,k;
-char *remap,*remap2;
-unsigned char *p1, *p2;
-long frames;
-int flash;
-int whichmap;
-int key;
-int ispaused;
-unsigned long videoflags;
-int done;
-int now;
-SDL_Event event;
-long starttime;
-int buttonstate;
+	int i,k;
+	char remap[16384];
+	char remap2[16384];
+	unsigned char *p1, *p2;
+	long frames;
+	int flash;
+	int whichmap;
+	int key;
+	int ispaused;
+	unsigned long videoflags;
+	int done;
+	int now;
+	SDL_Event event;
+	long starttime;
+	int buttonstate;
 
 	srand(time(NULL));
 	if ( SDL_Init(SDL_INIT_VIDEO) < 0 )
@@ -371,13 +373,10 @@ int buttonstate;
 	}
 
 	vmem1=NULL;
-	vmem2=malloc(XSIZE*YSIZE);
 	if(!vmem2) nomem();
 	mul640=malloc(YSIZE*sizeof(char *));
 	if(!mul640) nomem();
-	remap=malloc(16384);
 	if(!remap) nomem();
-	remap2=malloc(16384);
 	if(!remap2) nomem();
 	blobs=malloc(MAXBLOBS*sizeof(struct blob));
 	if(!blobs) nomem();
@@ -502,6 +501,8 @@ int buttonstate;
 
 	starttime=SDL_GetTicks()-starttime;
 	if(!starttime) starttime=1;
+	free(mul640);
+	free(blobs);
 	SDL_Quit();
 	printf("fps = %d\n",1000*frames/starttime);
 	exit(0);
